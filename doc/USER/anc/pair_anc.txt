@@ -1,0 +1,193 @@
+"LAMMPS WWW Site"_lws - "LAMMPS Documentation"_ld - "LAMMPS Commands"_lc :c
+
+:link(lws,http://lammps.sandia.gov)
+:link(ld,Manual.html)
+:link(lc,Section_commands.html#comm)
+
+:line
+
+pair_style anc/cut command :h3
+pair_style anc/cut/coul/cut command :h3
+pair_style anc/cut/coul/long command :h3
+pair_style anc/cut/dipole/long command :h3
+
+[Syntax:]
+
+pair_style style args :pre
+
+style = {anc/cut} or {anc/cut/coul/cut} or {anc/cut/coul/long} or {anc/cut/dipole/long}
+args = list of arguments for a particular style :ul
+  {anc/cut} args = cutoff
+    cutoff = global cutoff for ANC interactions (distance units)
+  {anc/cut/coul/cut} args = cutoff (cutoff2)
+    cutoff = global cutoff for ANC (and Coulombic if only 1 arg) (distance units)
+    cutoff2 = global cutoff for Coulombic (optional) (distance units)
+  {anc/cut/coul/long} args = cutoff (cutoff2)
+    cutoff = global cutoff for ANC (and Coulombic if only 1 arg) (distance units)
+    cutoff2 = global cutoff for Coulombic (optional) (distance units)
+  {anc/cut/dipole/long} args = cutoff (cutoff2)
+    cutoff = global cutoff for ANC (and dipole if only 1 arg) (distance units)
+    cutoff2 = global cutoff for dipole (optional) (distance units) :pre
+
+[Examples:]
+
+pair_style anc/cut 2.5
+pair_coeff * * 1 1 1.0
+pair_coeff 1 1 1 1.1 1.0 2.8 :pre
+
+pair_style anc/cut/coul/cut 10.0
+pair_style anc/cut/coul/cut 10.0 8.0
+pair_coeff * * 100.0 3.0 1.0
+pair_coeff 1 1 100.0 3.5 1.0 9.0
+pair_coeff 1 1 100.0 3.5 1.0 9.0 9.0 :pre
+
+pair_style anc/cut/coul/long 10.0
+pair_style anc/cut/coul/long 10.0 8.0
+pair_coeff * * 100.0 3.0 1.0
+pair_coeff 1 1 100.0 3.5 1.0 9.0 :pre
+
+[Description:]
+
+The {anc/cut} styles compute the Approximate Non-Conformal (ANC) potential,
+described in "(del Rio)"_#delRio and given by
+
+:c,image(Eqs/pair_anc.jpg)
+
+Rc is the cutoff.
+
+Style {anc/cut/coul/cut} adds a Coulombic pairwise interaction given by
+
+:c,image(Eqs/pair_coulomb.jpg)
+
+where C is an energy-conversion constant, Qi and Qj are the charges on
+the 2 atoms, and epsilon is the dielectric constant which can be set
+by the "dielectric"_dielectric.html command.  If one cutoff is
+specified in the pair_style command, it is used for both the ANC and
+Coulombic terms.  If two cutoffs are specified, they are used as
+cutoffs for the ANC and Coulombic terms respectively.
+
+Styles {anc/cut/coul/long} compute the same
+Coulombic interactions as style {anc/cut/coul/cut} except that an
+additional damping factor is applied to the Coulombic term so it can
+be used in conjunction with the "kspace_style"_kspace_style.html
+command and its {ewald} or {pppm} option.  The Coulombic cutoff
+specified for this style means that pairwise interactions within this
+distance are computed directly; interactions outside that distance are
+computed in reciprocal space.
+
+Style {anc/cut/dipole/cut} computes interactions between pairs of particles
+that each have a charge and/or a point dipole moment.  In addition to
+the ANC interaction between the particles (Eanc) the
+charge-charge (Eqq), charge-dipole (Eqp), and dipole-dipole (Epp)
+interactions are computed by these formulas for the energy (E), force
+(F), and torque (T) between particles I and J.
+
+:c,image(Eqs/pair_anc_dipole1.jpg)
+:c,image(Eqs/pair_anc_dipole2.jpg)
+:c,image(Eqs/pair_anc_dipole3.jpg)
+
+where qi and qj are the charges on the two particles, pi and pj are
+the dipole moment vectors of the two particles, r is their separation
+distance, and the vector r = Ri - Rj is the separation vector between
+the two particles.  Note that Eqq and Fqq are simply Coulombic energy
+and force, Fij = -Fji as symmetric forces, and Tij != -Tji since the
+torques do not act symmetrically.  These formulas are discussed in
+"(Allen)"_#Allen and in "(Toukmaji)"_#Toukmaji.
+
+Style {anc/cut/dipole/long} computes long-range point-dipole
+interactions as discussed in "(Toukmaji)"_#Toukmaji. Dipole-dipole,
+dipole-charge, and charge-charge interactions are all supported, along
+with the ANC interactions, which are computed
+with a cutoff.  A "kspace_style"_kspace_style.html must be defined to
+use this pair style.  Currently, only "kspace_style
+ewald/disp"_kspace_style.html support long-range point-dipole
+interactions.
+
+Atoms with dipole moments should be integrated using the "fix
+nve/sphere update dipole"_fix_nve_sphere.html command to rotate the
+dipole moments.  The {omega} option on the "fix
+langevin"_fix_langevin.html command can be used to thermostat the
+rotational motion.  The "compute temp/sphere"_compute_temp_sphere.html
+command can be used to monitor the temperature, since it includes
+rotational degrees of freedom.  The "atom_style
+dipole"_atom_style.html command should be used since it defines the
+point dipoles and their rotational state.  The magnitude of the dipole
+moment for each type of particle can be defined by the
+"dipole"_dipole.html command or in the "Dipoles" section of the data
+file read in by the "read_data"_read_data.html command.  Their initial
+orientation can be defined by the "set dipole"_set.html command or in
+the "Atoms" section of the data file.
+
+For all of the {anc} pair styles, the following coefficients must
+be defined for each pair of atoms types
+via the "pair_coeff"_pair_coeff.html command as in the
+examples above, or in the data file or restart files read by the
+"read_data"_read_data.html or "read_restart"_read_restart.html
+commands.
+
+E0 (energy units)
+r0 (distance units)
+S0 (unitless)
+cutoff1 (distance units)
+cutoff2 (distance units) :ul
+
+The latter 2 coefficients are optional.  If not specified, the global
+ANC and Coulombic cutoffs specified in the pair_style command are used.
+If only one cutoff is specified, it is used as the cutoff for both ANC
+and Coulombic interactions for this type pair.  If both coefficients
+are specified, they are used as the ANC and Coulombic cutoffs for this
+type pair.  You cannot specify 2 cutoffs for style {ANC}, since it
+has no Coulombic terms.
+
+For {anc/cut/coul/long} only the ANC cutoff can be specified since a
+Coulombic cutoff cannot be specified for an individual I,J type pair.
+All type pairs use the same global Coulombic cutoff specified in the
+pair_style command.
+
+:line
+
+[Mixing, shift, table, tail correction, restart, rRESPA info]:
+
+These pair styles do not support mixing. Thus, coefficients for all
+I,J pairs must be specified explicitly.
+
+All of the {anc} pair styles supports the
+"pair_modify"_pair_modify.html shift option for the energy of the pair
+interaction.
+
+The {anc/cut/coul/long} pair styles support the
+"pair_modify"_pair_modify.html table option since they can tabulate
+the short-range portion of the long-range Coulombic interaction.
+
+All of the {anc} pair styles support the "pair_modify"_pair_modify.html
+tail option for adding a long-range tail correction to the energy and
+pressure for the NM portion of the pair interaction.
+
+All of the {anc} pair styles write their information to "binary restart
+files"_restart.html, so pair_style and pair_coeff commands do not need
+to be specified in an input script that reads a restart file.
+
+All of the {anc} pair styles can only be used via the {pair} keyword of
+the "run_style respa"_run_style.html command.  They do not support the
+{inner}, {middle}, {outer} keywords.
+
+:line
+
+[Restrictions:]
+
+These pair styles are part of the USER-ANC package.  It is only enabled if
+LAMMPS was built with that package.  See the "Making
+LAMMPS"_Section_start.html#start_3 section for more info.
+
+[Related commands:]
+
+"pair_coeff"_pair_coeff.html
+
+[Default:] none
+
+:line
+
+:link(delRio)
+[(del Rio)] F. del R&iacute;o, J.E. Ramos, and I.A. McLure, "J. Phys. Chem. B 102, 10568 (1998)"_delRio1998.
+
+:link(delRio1998,http://dx.doi.org/10.1021/jp9831684)

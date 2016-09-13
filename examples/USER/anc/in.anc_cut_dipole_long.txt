@@ -1,0 +1,38 @@
+# Point dipoles in a 3d box
+
+units		lj
+atom_style	hybrid sphere dipole
+
+lattice		fcc 0.8442
+region		box block 0 5 0 5 0 5
+create_box	1 box
+create_atoms	1 box
+
+# need both mass settings due to hybrid atom style
+
+mass		1 1.0
+set		group all mass 1.0
+set		group all dipole/random 98934 0.5
+#set		group all diameter 1.0
+
+velocity	all create 1.4 87287 mom no
+
+pair_style	anc/cut/dipole/long 2.5
+kspace_style	ewald/disp 1.0e-4
+pair_coeff	1 1 1.0 $(2^(1.0/6.0)) 1.0 2.5
+
+neighbor	0.3 bin
+neigh_modify	delay 0
+
+timestep        0.002
+fix		1 all nvt/sphere update dipole temp 1.4 1.4 0.2
+
+compute		totT all temp/sphere dof all
+compute		erot all erotate/sphere
+thermo_style	custom step temp c_totT epair c_erot etotal press
+thermo		500
+
+#dump		1 all custom 500 dump.dipole.lammpstrj id type x y z mux muy muz
+#dump		2 all custom/vtk 500 dump*.dipole.vtk id type mux muy muz
+
+run		10000
